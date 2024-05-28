@@ -1,122 +1,443 @@
-import React, {useState, useEffect} from 'react'
-import "./styles.css"
+import React, { useState, useEffect } from "react";
+import "./styles.css";
+import { MathJax, MathJaxContext } from "better-react-mathjax";
+
+const mathJaxConfig = {
+  options: {
+    renderActions: {
+      addMenu: [],
+    },
+  },
+  tex: {
+    inlineMath: [
+      ["$", "$"],
+      ["\\(", "\\)"],
+    ],
+    displayMath: [
+      ["$$", "$$"],
+      ["\\[", "\\]"],
+    ],
+    processEscapes: true,
+    processEnvironments: true,
+    autoload: {
+      color: [],
+      colorV2: ["color"],
+      mhchem: ["mhchem"],
+      physics: ["physics"],
+    },
+    tags: "ams",
+    tagSide: "right",
+    tagIndent: "0.8em",
+    useLabelIds: true,
+    multlineWidth: "85%",
+    linebreaks: { automatic: true },
+  },
+  "HTML-CSS": { linebreaks: { automatic: true } },
+  SVG: { linebreaks: { automatic: true } },
+};
 
 function App() {
   const [userInputs, setUserInputs] = useState({
-    displacement: '',
-    init_velocity: '',
-    fin_velocity: '',
-    acceleration: '',
-    time: ''
-  });
-  
-  const [calculatedValues, setCalculatedValues] = useState({
-    displacement: '',
-    init_velocity: '',
-    fin_velocity: '',
-    acceleration: '',
-    time: ''
+    displacement: "",
+    init_velocity: "",
+    fin_velocity: "",
+    acceleration: "",
+    time: "",
   });
 
-  const [selectedTimeMod, setSelectedTimeMod] = useState('');
-  let timeMod = 1;
+  const [calculatedValues, setCalculatedValues] = useState({
+    displacement: "",
+    init_velocity: "",
+    fin_velocity: "",
+    acceleration: "",
+    time: "",
+  });
+
+  const [selectedTimeMod, setSelectedTimeMod] = useState("seconds");
+  const [selectedDisplacementMod, setSelectedDisplacementMod] = useState("m");
+  const [selectedAccelerationMod, setSelectedAccelerationMod] =
+    useState("m/s²");
+  const [selectedInitVelMod, setSelectedInitVelMod] = useState("m/s");
+  const [selectedFinVelMod, setSelectedFinVelMod] = useState("m/s");
+
+  const [stepByStep, setStepByStep] = useState("");
 
   const handleSelectTimeMod = (event) => {
     setSelectedTimeMod(event.target.value);
-  
-    if (event.target.value === 'mins') {
-      timeMod = 1;
-    }
-  }
-
-  const [selectedDisplacementMod, setSelectedDisplacementMod] = useState('');
-  let displacementMod = 1;
+  };
 
   const handleSelectDisplacementMod = (event) => {
     setSelectedDisplacementMod(event.target.value);
-  
-    if (event.target.value === 'cm') {
-      displacementMod = 60;
-    }
-  }
+  };
+
+  const handleSelectAccelerationMod = (event) => {
+    setSelectedAccelerationMod(event.target.value);
+  };
+
+  const handleSelectInitVelMod = (event) => {
+    setSelectedInitVelMod(event.target.value);
+  };
+
+  const handleSelectFinVelMod = (event) => {
+    setSelectedFinVelMod(event.target.value);
+  };
+
+  let convertTime = (time, fromUnit, toUnit) => {
+    const timeConversion = {
+      seconds: 1,
+      mins: 60,
+      hours: 3600,
+    };
+    return (time * timeConversion[fromUnit]) / timeConversion[toUnit];
+  };
+
+  let convertDisplacement = (displacement, fromUnit, toUnit) => {
+    const displacementConversion = {
+      m: 1,
+      cm: 0.01,
+      km: 1000,
+      ft: 0.3048,
+    };
+    return (
+      (displacement * displacementConversion[fromUnit]) /
+      displacementConversion[toUnit]
+    );
+  };
+
+  let convertAcceleration = (acceleration, fromUnit, toUnit) => {
+    const accelerationConversion = {
+      "m/s²": 1,
+      "km/s²": 1000,
+      "ft/s²": 0.3048,
+    };
+    return (
+      (acceleration * accelerationConversion[fromUnit]) /
+      accelerationConversion[toUnit]
+    );
+  };
+
+  let convertInitVelocity = (velocity, fromUnit) => {
+    const velocityConversion = {
+      "m/s": 1,
+      "cm/s": 0.01,
+      "km/h": 0.277778,
+    };
+    return velocity * velocityConversion[fromUnit];
+  };
+
+  let convertFinVelocity = (velocity, fromUnit) => {
+    const velocityConversion = {
+      "m/s": 1,
+      "cm/s": 0.01,
+      "km/h": 0.277778,
+    };
+    return velocity * velocityConversion[fromUnit];
+  };
 
   let countNonEmptyInputs = () => {
     let count = 0;
-    Object.values(userInputs).forEach(val => {
-      if (val !== '') {
+    Object.values(userInputs).forEach((val) => {
+      if (val !== "") {
         count++;
       }
     });
     return count;
-  }
+  };
 
   let calcKine = () => {
-    // a = ? and s = ?
-    if (userInputs.acceleration === '' && userInputs.displacement === '') {
-      const newAcceleration = (userInputs.fin_velocity - userInputs.init_velocity) / userInputs.time;
-      setCalculatedValues(prevValues => ({
+    let { displacement, init_velocity, fin_velocity, acceleration, time } =
+      userInputs;
+
+    // Convert inputs to SI units for calculation
+    if (time) time = convertTime(parseFloat(time), selectedTimeMod, "seconds");
+    if (displacement)
+      displacement = convertDisplacement(
+        parseFloat(displacement),
+        selectedDisplacementMod,
+        "m"
+      );
+    if (acceleration)
+      acceleration = convertAcceleration(
+        parseFloat(acceleration),
+        selectedAccelerationMod,
+        "m/s²"
+      );
+    if (init_velocity) {
+      init_velocity = convertInitVelocity(
+        parseFloat(init_velocity),
+        selectedInitVelMod
+      );
+    }
+    if (fin_velocity) {
+      fin_velocity = convertFinVelocity(
+        parseFloat(fin_velocity),
+        selectedFinVelMod
+      );
+    }
+
+    let steps = "";
+
+    // Both Distance (s) and Acceleration (a) are missing
+    if (displacement === "" && acceleration === "") {
+      const newAcceleration = (fin_velocity - init_velocity) / time;
+      const newDisplacement =
+        init_velocity * time + 0.5 * newAcceleration * Math.pow(time, 2);
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } u = ${init_velocity} \\text{ m/s}, v = ${fin_velocity} \\text{ m/s}, t = ${time.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Acceleration: } a = \\frac{v - u}{t} = \\frac{${fin_velocity} - ${init_velocity}}{${time.toFixed(
+        2
+      )}} = ${newAcceleration.toFixed(2)} \\text{ m/s}^2 \\\\
+        &\\text{Displacement: } s = ut + \\frac{1}{2}at^2 = ${init_velocity} \\times ${time.toFixed(
+        2
+      )} + \\frac{1}{2} \\times ${newAcceleration.toFixed(
+        2
+      )} \\times ${time.toFixed(2)}^2 = ${newDisplacement.toFixed(2)} \\text{ m}
+        \\end{align*}
+        `;
+      setCalculatedValues((prevValues) => ({
         ...prevValues,
         acceleration: newAcceleration.toFixed(2),
-        displacement: ((userInputs.init_velocity * userInputs.time) + (0.5 * newAcceleration * Math.pow(userInputs.time, 2))).toFixed(2)
+        displacement: newDisplacement.toFixed(2),
       }));
-    } 
-    // t = ? and s = ?
-    else if (userInputs.displacement == '' && userInputs.time == '') {
-      const newTime = (userInputs.fin_velocity - userInputs.init_velocity) / userInputs.acceleration;
-      setCalculatedValues(prevValues => ({
+    }
+    // Both Distance (s) and Time (t) are missing
+    else if (displacement === "" && time === "") {
+      const newTime = (fin_velocity - init_velocity) / acceleration;
+      const newDisplacement =
+        init_velocity * newTime + 0.5 * acceleration * Math.pow(newTime, 2);
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } u = ${init_velocity} \\text{ m/s}, v = ${fin_velocity} \\text{ m/s}, a = ${acceleration} \\text{ m/s}^2 \\\\
+        &\\text{Time: } t = \\frac{v - u}{a} = \\frac{${fin_velocity} - ${init_velocity}}{${acceleration}} = ${newTime.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Displacement: } s = ut + \\frac{1}{2}at^2 = ${init_velocity} \\times ${newTime.toFixed(
+        2
+      )} + \\frac{1}{2} \\times ${acceleration} \\times ${newTime.toFixed(
+        2
+      )}^2 = ${newDisplacement.toFixed(2)} \\text{ m}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
         ...prevValues,
         time: newTime.toFixed(2),
-        displacement: ((userInputs.init_velocity * newTime) + (0.5 * userInputs.acceleration * Math.pow(newTime, 2))).toFixed(2)
-      }));
-    } 
-    // a = ? and t = ?
-    else if (userInputs.acceleration == '' && userInputs.time == '') {
-      const newAcceleration = (Math.pow(userInputs.fin_velocity, 2) - Math.pow(userInputs.init_velocity, 2)) / (2 * userInputs.displacement);
-      setCalculatedValues(prevValues => ({
-        ...prevValues,
-        acceleration: newAcceleration.toFixed(2),
-        time: ((userInputs.fin_velocity - userInputs.init_velocity) / newAcceleration).toFixed(2)
+        displacement: newDisplacement.toFixed(2),
       }));
     }
-    // v = ? and s = ?
-    else if (userInputs.fin_velocity == '' && userInputs.displacement == '') {
-      const newFinVelocity = userInputs.init_velocity + (userInputs.acceleration * userInputs.time);
-      setCalculatedValues(prevValues => ({
+    // Both Distance (s) and Initial Velocity (u) are missing
+    else if (displacement === "" && init_velocity === "") {
+      const newInitVelocity = fin_velocity - acceleration * time;
+      const newDisplacement =
+        newInitVelocity * time + 0.5 * acceleration * Math.pow(time, 2);
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } v = ${fin_velocity} \\text{ m/s}, a = ${acceleration} \\text{ m/s}^2, t = ${time.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Initial Velocity: } u = v - at = ${fin_velocity} - ${acceleration} \\times ${time.toFixed(
+        2
+      )} = ${newInitVelocity.toFixed(2)} \\text{ m/s} \\\\
+        &\\text{Displacement: } s = ut + \\frac{1}{2}at^2 = ${newInitVelocity.toFixed(
+          2
+        )} \\times ${time.toFixed(
+        2
+      )} + \\frac{1}{2} \\times ${acceleration} \\times ${time.toFixed(
+        2
+      )}^2 = ${newDisplacement.toFixed(2)} \\text{ m}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
+        ...prevValues,
+        init_velocity: newInitVelocity.toFixed(2),
+        displacement: newDisplacement.toFixed(2),
+      }));
+    }
+    // Both Distance (s) and Final Velocity (v) are missing
+    else if (displacement === "" && fin_velocity === "") {
+      const newFinVelocity = init_velocity + acceleration * time;
+      const newDisplacement =
+        init_velocity * time + 0.5 * acceleration * Math.pow(time, 2);
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } u = ${init_velocity} \\text{ m/s}, a = ${acceleration} \\text{ m/s}^2, t = ${time.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Final Velocity: } v = u + at = ${init_velocity} + ${acceleration} \\times ${time.toFixed(
+        2
+      )} = ${newFinVelocity.toFixed(2)} \\text{ m/s} \\\\
+        &\\text{Displacement: } s = ut + \\frac{1}{2}at^2 = ${init_velocity} \\times ${time.toFixed(
+        2
+      )} + \\frac{1}{2} \\times ${acceleration} \\times ${time.toFixed(
+        2
+      )}^2 = ${newDisplacement.toFixed(2)} \\text{ m}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
         ...prevValues,
         fin_velocity: newFinVelocity.toFixed(2),
-        displacement: ((userInputs.init_velocity * userInputs.time) + (0.5 * userInputs.acceleration * Math.pow(userInputs.time, 2))).toFixed(2)
+        displacement: newDisplacement.toFixed(2),
       }));
     }
-    // u = ? and s = ?
-    else if (userInputs.init_velocity == '' && userInputs.displacement == '') {
-      const newInitVelocity = userInputs.fin_velocity - (userInputs.acceleration * userInputs.time);
-      setCalculatedValues(prevValues => ({
+    // Both Acceleration (a) and Time (t) are missing
+    else if (acceleration === "" && time === "") {
+      const newTime = (2 * displacement) / (init_velocity + fin_velocity);
+      const newAcceleration = (fin_velocity - init_velocity) / newTime;
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } s = ${displacement} \\text{ m}, u = ${init_velocity} \\text{ m/s}, v = ${fin_velocity} \\text{ m/s} \\\\
+        &\\text{Time: } t = \\frac{2s}{u + v} = \\frac{2 \\times ${displacement}}{${init_velocity} + ${fin_velocity}} = ${newTime.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Acceleration: } a = \\frac{v - u}{t} = \\frac{${fin_velocity} - ${init_velocity}}{${newTime.toFixed(
+        2
+      )}} = ${newAcceleration.toFixed(2)} \\text{ m/s}^2
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
+        ...prevValues,
+        acceleration: newAcceleration.toFixed(2),
+        time: newTime.toFixed(2),
+      }));
+    }
+    // Both Acceleration (a) and Initial Velocity (u) are missing
+    else if (acceleration === "" && init_velocity === "") {
+      const newAcceleration =
+        (2 * (displacement - fin_velocity * time)) / Math.pow(time, 2);
+      const newInitVelocity = fin_velocity - newAcceleration * time;
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } s = ${displacement} \\text{ m}, v = ${fin_velocity} \\text{ m/s}, t = ${time.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Acceleration: } a = \\frac{2(s - vt)}{t^2} = \\frac{2(${displacement} - ${fin_velocity} \\times ${time.toFixed(
+        2
+      )})}{${time.toFixed(2)}^2} = ${newAcceleration.toFixed(
+        2
+      )} \\text{ m/s}^2 \\\\
+        &\\text{Initial Velocity: } u = v - at = ${fin_velocity} - ${newAcceleration.toFixed(
+        2
+      )} \\times ${time.toFixed(2)} = ${newInitVelocity.toFixed(2)} \\text{ m/s}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
+        ...prevValues,
+        acceleration: newAcceleration.toFixed(2),
+        init_velocity: newInitVelocity.toFixed(2),
+      }));
+    }
+    // Both Acceleration (a) and Final Velocity (v) are missing
+    else if (acceleration === "" && fin_velocity === "") {
+      const newAcceleration =
+        (2 * (displacement - init_velocity * time)) / Math.pow(time, 2);
+      const newFinVelocity = init_velocity + newAcceleration * time;
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } s = ${displacement} \\text{ m}, u = ${init_velocity} \\text{ m/s}, t = ${time.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Acceleration: } a = \\frac{2(s - ut)}{t^2} = \\frac{2(${displacement} - ${init_velocity} \\times ${time.toFixed(
+        2
+      )})}{${time.toFixed(2)}^2} = ${newAcceleration.toFixed(
+        2
+      )} \\text{ m/s}^2 \\\\
+        &\\text{Final Velocity: } v = u + at = ${init_velocity} + ${newAcceleration.toFixed(
+        2
+      )} \\times ${time.toFixed(2)} = ${newFinVelocity.toFixed(2)} \\text{ m/s}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
+        ...prevValues,
+        acceleration: newAcceleration.toFixed(2),
+        fin_velocity: newFinVelocity.toFixed(2),
+      }));
+    }
+    // Both Initial Velocity (u) and Time (t) are missing
+    else if (init_velocity === "" && time === "") {
+      const newTime =
+        (fin_velocity -
+          Math.sqrt(
+            Math.pow(fin_velocity, 2) - 2 * acceleration * displacement
+          )) /
+        acceleration;
+      const newInitVelocity = fin_velocity - acceleration * newTime;
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } s = ${displacement} \\text{ m}, v = ${fin_velocity} \\text{ m/s}, a = ${acceleration} \\text{ m/s}^2 \\\\
+        &\\text{Time: } t = \\frac{v - \\sqrt{v^2 - 2as}}{a} = \\frac{${fin_velocity} - \\sqrt{${fin_velocity}^2 - 2 \\times ${acceleration} \\times ${displacement}}}{${acceleration}} = ${newTime.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Initial Velocity: } u = v - at = ${fin_velocity} - ${acceleration} \\times ${newTime.toFixed(
+        2
+      )} = ${newInitVelocity.toFixed(2)} \\text{ m/s}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
         ...prevValues,
         init_velocity: newInitVelocity.toFixed(2),
-        displacement: ((newInitVelocity * userInputs.time) + (0.5 * userInputs.acceleration * Math.pow(userInputs.time, 2))).toFixed(2)
+        time: newTime.toFixed(2),
       }));
     }
-    // u = ? and v = ?
-    else if (userInputs.init_velocity == '' && userInputs.fin_velocity == '') {
-      const newInitVelocity = (userInputs.displacement - (0.5 * userInputs.acceleration * Math.pow(userInputs.time, 2))) / userInputs.time;
-      setCalculatedValues(prevValues => ({
+    // Both Final Velocity (v) and Time (t) are missing
+    else if (fin_velocity === "" && time === "") {
+      const newTime =
+        (Math.sqrt(
+          Math.pow(init_velocity, 2) + 2 * acceleration * displacement
+        ) -
+          init_velocity) /
+        acceleration;
+      const newFinVelocity = init_velocity + acceleration * newTime;
+      steps = `
+        \\begin{align*}
+        &\\text{Given: } s = ${displacement} \\text{ m}, u = ${init_velocity} \\text{ m/s}, a = ${acceleration} \\text{ m/s}^2 \\\\
+        &\\text{Time: } t = \\frac{\\sqrt{u^2 + 2as} - u}{a} = \\frac{\\sqrt{${init_velocity}^2 + 2 \\times ${acceleration} \\times ${displacement}} - ${init_velocity}}{${acceleration}} = ${newTime.toFixed(
+        2
+      )} \\text{ s} \\\\
+        &\\text{Final Velocity: } v = u + at = ${init_velocity} + ${acceleration} \\times ${newTime.toFixed(
+        2
+      )} = ${newFinVelocity.toFixed(2)} \\text{ m/s}
+        \\end{align*}
+      `;
+      setCalculatedValues((prevValues) => ({
         ...prevValues,
-        init_velocity: newInitVelocity.toFixed(2),
-        fin_velocity: (newInitVelocity + (userInputs.acceleration * userInputs.time)).toFixed(2)
+        fin_velocity: newFinVelocity.toFixed(2),
+        time: newTime.toFixed(2),
       }));
     }
-    // 
-  }
 
-  /*getInitVelocity = () => {
-    if (userInputs.displacement === '') {
-      const newInitVelocity = userInputs.fin_velocity - (userInputs.acceleration * userInputs.time);
-    } else if (userInputs.fin_velocity === ''){
-      const newInitVelocity = (userInputs.displacement - (0.5 * userInputs.acceleration * Math.pow(userInputs.time, 2))) / userInputs.time;
-    } else if (userInputs.time === '') {
-      const newInitVelocity = Math.sqrt(userInputs.fin_velocity)
+    // Both Initial Velocity (u) and Final Velocity (v) are missing
+    else if (init_velocity === "" && fin_velocity === "") {
+      const newInitVelocity =
+        (displacement - 0.5 * acceleration * Math.pow(time, 2)) / time;
+      const newFinVelocity = newInitVelocity + acceleration * time;
+      steps = `
+    \\begin{align*}
+    &\\text{Given: } s = ${displacement} \\text{ m}, a = ${acceleration} \\text{ m/s}^2, t = ${time.toFixed(
+        2
+      )} \\text{ s} \\\\
+    &\\text{Initial Velocity: } u = \\frac{s - \\frac{1}{2} a t^2}{t} = \\frac{${displacement} - \\frac{1}{2} \\times ${acceleration} \\times ${time.toFixed(
+        2
+      )}^2}{${time.toFixed(2)}} = ${newInitVelocity.toFixed(
+        2
+      )} \\text{ m/s} \\\\
+    &\\text{Final Velocity: } v = u + at = ${newInitVelocity.toFixed(
+      2
+    )} + ${acceleration} \\times ${time.toFixed(2)} = ${newFinVelocity.toFixed(
+        2
+      )} \\text{ m/s}
+    \\end{align*}
+  `;
+      setCalculatedValues((prevValues) => ({
+        ...prevValues,
+        init_velocity: newInitVelocity.toFixed(2),
+        fin_velocity: newFinVelocity.toFixed(2),
+      }));
     }
-  }*/
+
+    setStepByStep(steps);
+  };
 
   useEffect(() => {
     if (countNonEmptyInputs() === 3) {
@@ -124,66 +445,124 @@ function App() {
     }
   }, [userInputs]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setUserInputs((prevInputs) => ({
+      ...prevInputs,
+      [name]: value,
+    }));
+  };
+
   let reload = () => {
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   const [isContainerFocused, setIsContainerFocused] = useState(false);
 
   return (
-    <>
-    <h2 className='header'>kinematics calculator.</h2>
-    <div className={`background ${isContainerFocused ? 'blur' : ''}`}></div>
-    <div className={`container ${isContainerFocused ? 'focused' : ''}`} 
-    tabIndex="0" 
-    onFocus={() => setIsContainerFocused(true)} 
-    onBlur={() => setIsContainerFocused(false)}>
-        <form>
-          <label>Displacement</label>
+    <MathJaxContext version={3} config={mathJaxConfig}>
+      <>
+        <h1 className="header">Kinematics Calculator</h1>
+        <div className={`background ${isContainerFocused ? "blur" : ""}`}></div>
+        <div
+          className={`container ${isContainerFocused ? "focused" : ""}`}
+          tabIndex="0"
+          onFocus={() => setIsContainerFocused(true)}
+          onBlur={() => setIsContainerFocused(false)}
+        >
           <div className="input-select-container">
-            <input placeholder='0' value={userInputs.displacement || calculatedValues.displacement} onChange={(event) => {setUserInputs(prevInputs => ({...prevInputs, displacement: event.target.value}));}}
-            style={{backgroundColor: calculatedValues.displacement ? 'rgb(230, 255, 225)' : 'white'}}/>
-            <select value={selectedDisplacementMod} onChange={handleSelectDisplacementMod}>
+            <label>Displacement:</label>
+            <input
+              type="number"
+              name="displacement"
+              value={userInputs.displacement}
+              onChange={handleChange}
+            />
+            <select
+              value={selectedDisplacementMod}
+              onChange={handleSelectDisplacementMod}
+            >
               <option value="m">m</option>
               <option value="cm">cm</option>
-              <option value="mm">mm</option>
-              <option value="ft">ft</option>
+              <option value="km">km</option>
             </select>
           </div>
-          <label>Initial Velocity</label>
           <div className="input-select-container">
-            <input placeholder='0' value={userInputs.init_velocity || calculatedValues.init_velocity} onChange={(event) => {setUserInputs(prevInputs => ({...prevInputs, init_velocity: event.target.value}));}}
-            style={{backgroundColor: calculatedValues.init_velocity ? 'rgb(230, 255, 225)' : 'white'}}/>
+            <label>Initial Velocity:</label>
+            <input
+              type="number"
+              name="init_velocity"
+              value={userInputs.init_velocity}
+              onChange={handleChange}
+            />
+            <select
+              value={selectedInitVelMod}
+              onChange={handleSelectInitVelMod}
+            >
+              <option value="m/s">m/s</option>
+              <option value="cm/s">cm/s</option>
+              <option value="km/h">km/h</option>
+            </select>
           </div>
-          <label>Final Velocity</label>
           <div className="input-select-container">
-            <input placeholder='0' value={userInputs.fin_velocity || calculatedValues.fin_velocity} onChange={(event) => {setUserInputs(prevInputs => ({...prevInputs, fin_velocity: event.target.value}));}}
-            style={{backgroundColor: calculatedValues.fin_velocity ? 'rgb(230, 255, 225)' : 'white'}}/>
+            <label>Final Velocity: </label>
+            <input
+              type="number"
+              name="fin_velocity"
+              value={userInputs.fin_velocity}
+              onChange={handleChange}
+            />
+            <select value={selectedFinVelMod} onChange={handleSelectFinVelMod}>
+              <option value="m/s">m/s</option>
+              <option value="cm/s">cm/s</option>
+              <option value="km/h">km/h</option>
+            </select>
           </div>
-          <label>Acceleration</label>
           <div className="input-select-container">
-            <input placeholder='0' value={userInputs.acceleration || calculatedValues.acceleration} onChange={(event) => {setUserInputs(prevInputs => ({...prevInputs, acceleration: event.target.value}));}}
-            style={{backgroundColor: calculatedValues.acceleration ? 'rgb(230, 255, 225)' : 'white'}}/>
+            <label>Acceleration:</label>
+            <input
+              type="number"
+              name="acceleration"
+              value={userInputs.acceleration}
+              onChange={handleChange}
+            />
+            <select
+              value={selectedAccelerationMod}
+              onChange={handleSelectAccelerationMod}
+            >
+              <option value="m/s²">m/s²</option>
+              <option value="cm/s²">cm/s²</option>
+              <option value="km/h²">km/h²</option>
+            </select>
           </div>
-          <label>Time</label>
           <div className="input-select-container">
-            <input placeholder='0' value={userInputs.time || calculatedValues.time} onChange={(event) => {setUserInputs(prevInputs => ({...prevInputs, time: event.target.value}));}}
-            style={{backgroundColor: calculatedValues.time ? 'rgb(230, 255, 225)' : 'white'}}/>
+            <label>Time:</label>
+            <input
+              type="number"
+              name="time"
+              value={userInputs.time}
+              onChange={handleChange}
+            />
             <select value={selectedTimeMod} onChange={handleSelectTimeMod}>
-              <option value="seconds">sec.</option>
-              <option value="mins">min.</option>
-              <option value="hours">hr.</option>
+              <option value="s">s</option>
+              <option value="min">min</option>
+              <option value="h">h</option>
             </select>
           </div>
-
-          <div> 
-            <button className='btn' onClick={reload} type='submit'>reset</button>
+          <div>
+            <button className="btn" onClick={reload} type="submit">
+              reset
+            </button>
           </div>
-        </form>
-      </div>
-      <h4 className='credits'>Made by Group 2 <n></n> for Calculus-based Physics Final Project. <n></n> © porth, 2024.</h4>
-    </>
-  )
+        </div>
+        <div className="results-container">
+          <MathJax className="mathjax-steps">
+            <div dangerouslySetInnerHTML={{ __html: stepByStep }} />
+          </MathJax>
+        </div>
+      </>
+    </MathJaxContext>
+  );
 }
 
-export default App
+export default App;
