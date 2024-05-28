@@ -10,7 +10,7 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background-image: url("./bg-zen.gif");
+  background-image: url("/bg-zen.gif");
   background-repeat: no-repeat;
   background-size: cover;
   font-family: "Quicksand", sans-serif;
