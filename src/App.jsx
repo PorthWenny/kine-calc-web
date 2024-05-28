@@ -444,14 +444,6 @@ function App() {
     }
   }, [userInputs]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUserInputs((prevInputs) => ({
-      ...prevInputs,
-      [name]: value,
-    }));
-  };
-
   let reload = () => {
     window.location.reload();
   };
@@ -464,10 +456,12 @@ function App() {
     <MathJaxContext version={3} config={mathJaxConfig}>
       <>
         <div className="header">
-          <h1 className="front-title">Kinematics Calculator</h1>
-          <button className="pop-btn" onClick={() => setOpenPopUp(true)}>
-            i
-          </button>
+          <h1 className="front-title">kinematics calculator.</h1>
+          <div className="hidden-quote">
+            <button className="pop-btn" onClick={() => setOpenPopUp(true)}>
+              ?
+            </button>
+          </div>
         </div>
         <div className={`background ${isContainerFocused ? "blur" : ""}`}></div>
         <div
@@ -604,6 +598,7 @@ function App() {
             <button className="btn" onClick={reload} type="submit">
               reset
             </button>
+
             <button className="btn" onClick={() => setOpenSolution(true)}>
               See Solution
             </button>
@@ -625,18 +620,28 @@ function App() {
               </div>
               <div className="content">
                 <p className="text-xl">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
-                  do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                  Lacus suspendisse faucibus interdum posuere lorem ipsum. Nibh
-                  ipsum consequat nisl vel pretium. Risus commodo viverra
-                  maecenas accumsan lacus. Mattis nunc sed blandit libero
-                  volutpat sed cras. Massa enim nec dui nunc mattis enim ut. Ac
-                  turpis egestas sed tempus urna et. Amet justo donec enim diam
-                  vulputate ut pharetra sit amet. Risus at ultrices mi tempus
-                  imperdiet nulla malesuada pellentesque. Eleifend donec pretium
-                  vulputate sapien nec sagittis. Id leo in vitae turpis massa
-                  sed elementum tempus egestas. Vel eros donec ac odio tempor
-                  orci dapibus.
+                  Kinematics is the branch of classical mechanics that describes
+                  the motion of points, objects and systems of groups of
+                  objects, without reference to the causes of motion (i.e.,
+                  forces). The study of kinematics is often referred to as the
+                  “geometry of motion.”
+                  <br />
+                  <br />
+                  This calculator will help you solve problems related to
+                  kinematics, using these equations:
+                  <br />
+                  <br />
+                  <MathJax> s = ut + 1/2 at² </MathJax>
+                  <MathJax> v = u + at </MathJax>
+                  <MathJax> v² = u² + 2as </MathJax>
+                  <MathJax> s = (u + v)t/2 </MathJax>
+                  <br />
+                  Just input the values you have, and the calculator will
+                  automatically give you the two missing values. Use the
+                  <span style={{ color: "green" }}> dropdowns </span> to select
+                  the units of the values you input. Press the
+                  <span style={{ color: "green" }}> reset button</span> to clear
+                  the inputs and save your solution to history. Enjoy!
                 </p>
               </div>
             </div>
@@ -657,9 +662,16 @@ function App() {
                 </button>
               </div>
               <div className="results-container">
-                <MathJax className="mathjax-steps">
-                  <div dangerouslySetInnerHTML={{ __html: stepByStep }} />
-                </MathJax>
+                {stepByStep ? (
+                  <MathJax className="mathjax-steps">
+                    <div dangerouslySetInnerHTML={{ __html: stepByStep }} />
+                  </MathJax>
+                ) : (
+                  <p>
+                    The solution would appear here if available. <br /> Input
+                    your three available variables onto the calculator to start.
+                  </p>
+                )}
               </div>
             </div>
           </div>
