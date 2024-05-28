@@ -27,10 +27,9 @@ const mathJaxConfig = {
     },
     tags: "ams",
     tagSide: "right",
-    tagIndent: "0.8em",
+    tagIndent: "1em",
     useLabelIds: true,
     multlineWidth: "85%",
-    linebreaks: { automatic: true },
   },
   "HTML-CSS": { linebreaks: { automatic: true } },
   SVG: { linebreaks: { automatic: true } },
@@ -107,8 +106,8 @@ function App() {
   let convertAcceleration = (acceleration, fromUnit, toUnit) => {
     const accelerationConversion = {
       "m/s²": 1,
-      "km/s²": 1000,
-      "ft/s²": 0.3048,
+      "cm/s²": 0.01,
+      "km/h²": 0.00007716049383,
     };
     return (
       (acceleration * accelerationConversion[fromUnit]) /
@@ -458,11 +457,18 @@ function App() {
   };
 
   const [isContainerFocused, setIsContainerFocused] = useState(false);
+  const [openPopUp, setOpenPopUp] = useState(false);
+  const [openSolution, setOpenSolution] = useState(false);
 
   return (
     <MathJaxContext version={3} config={mathJaxConfig}>
       <>
-        <h1 className="header">Kinematics Calculator</h1>
+        <div className="header">
+          <h1 className="front-title">Kinematics Calculator</h1>
+          <button className="pop-btn" onClick={() => setOpenPopUp(true)}>
+            i
+          </button>
+        </div>
         <div className={`background ${isContainerFocused ? "blur" : ""}`}></div>
         <div
           className={`container ${isContainerFocused ? "focused" : ""}`}
@@ -470,13 +476,22 @@ function App() {
           onFocus={() => setIsContainerFocused(true)}
           onBlur={() => setIsContainerFocused(false)}
         >
+          <label>Displacement:</label>
           <div className="input-select-container">
-            <label>Displacement:</label>
             <input
-              type="number"
-              name="displacement"
-              value={userInputs.displacement}
-              onChange={handleChange}
+              placeholder="0"
+              value={userInputs.displacement || calculatedValues.displacement}
+              onChange={(event) => {
+                setUserInputs((prevInputs) => ({
+                  ...prevInputs,
+                  displacement: event.target.value,
+                }));
+              }}
+              style={{
+                backgroundColor: calculatedValues.displacement
+                  ? "rgb(230, 255, 225)"
+                  : "white",
+              }}
             />
             <select
               value={selectedDisplacementMod}
@@ -487,13 +502,22 @@ function App() {
               <option value="km">km</option>
             </select>
           </div>
+          <label>Initial Velocity:</label>
           <div className="input-select-container">
-            <label>Initial Velocity:</label>
             <input
-              type="number"
-              name="init_velocity"
-              value={userInputs.init_velocity}
-              onChange={handleChange}
+              placeholder="0"
+              value={userInputs.init_velocity || calculatedValues.init_velocity}
+              onChange={(event) => {
+                setUserInputs((prevInputs) => ({
+                  ...prevInputs,
+                  init_velocity: event.target.value,
+                }));
+              }}
+              style={{
+                backgroundColor: calculatedValues.init_velocity
+                  ? "rgb(230, 255, 225)"
+                  : "white",
+              }}
             />
             <select
               value={selectedInitVelMod}
@@ -504,13 +528,22 @@ function App() {
               <option value="km/h">km/h</option>
             </select>
           </div>
+          <label>Final Velocity: </label>
           <div className="input-select-container">
-            <label>Final Velocity: </label>
             <input
-              type="number"
-              name="fin_velocity"
-              value={userInputs.fin_velocity}
-              onChange={handleChange}
+              placeholder="0"
+              value={userInputs.fin_velocity || calculatedValues.fin_velocity}
+              onChange={(event) => {
+                setUserInputs((prevInputs) => ({
+                  ...prevInputs,
+                  fin_velocity: event.target.value,
+                }));
+              }}
+              style={{
+                backgroundColor: calculatedValues.fin_velocity
+                  ? "rgb(230, 255, 225)"
+                  : "white",
+              }}
             />
             <select value={selectedFinVelMod} onChange={handleSelectFinVelMod}>
               <option value="m/s">m/s</option>
@@ -518,13 +551,22 @@ function App() {
               <option value="km/h">km/h</option>
             </select>
           </div>
+          <label>Acceleration:</label>
           <div className="input-select-container">
-            <label>Acceleration:</label>
             <input
-              type="number"
-              name="acceleration"
-              value={userInputs.acceleration}
-              onChange={handleChange}
+              placeholder="0"
+              value={userInputs.acceleration || calculatedValues.acceleration}
+              onChange={(event) => {
+                setUserInputs((prevInputs) => ({
+                  ...prevInputs,
+                  acceleration: event.target.value,
+                }));
+              }}
+              style={{
+                backgroundColor: calculatedValues.acceleration
+                  ? "rgb(230, 255, 225)"
+                  : "white",
+              }}
             />
             <select
               value={selectedAccelerationMod}
@@ -535,31 +577,98 @@ function App() {
               <option value="km/h²">km/h²</option>
             </select>
           </div>
+          <label>Time:</label>
           <div className="input-select-container">
-            <label>Time:</label>
             <input
-              type="number"
-              name="time"
-              value={userInputs.time}
-              onChange={handleChange}
+              placeholder="0"
+              value={userInputs.time || calculatedValues.time}
+              onChange={(event) => {
+                setUserInputs((prevInputs) => ({
+                  ...prevInputs,
+                  time: event.target.value,
+                }));
+              }}
+              style={{
+                backgroundColor: calculatedValues.time
+                  ? "rgb(230, 255, 225)"
+                  : "white",
+              }}
             />
             <select value={selectedTimeMod} onChange={handleSelectTimeMod}>
-              <option value="s">s</option>
-              <option value="min">min</option>
-              <option value="h">h</option>
+              <option value="s">sec.</option>
+              <option value="min">min.</option>
+              <option value="h">hr.</option>
             </select>
           </div>
           <div>
             <button className="btn" onClick={reload} type="submit">
               reset
             </button>
+            <button className="btn" onClick={() => setOpenSolution(true)}>
+              See Solution
+            </button>
           </div>
         </div>
-        <div className="results-container">
-          <MathJax className="mathjax-steps">
-            <div dangerouslySetInnerHTML={{ __html: stepByStep }} />
-          </MathJax>
-        </div>
+
+        {openPopUp && (
+          <div>
+            <div className="overlay"></div>
+            <div className="popup">
+              <div className="header">
+                <h2>Welcome!</h2>
+                <button
+                  className="close-btn"
+                  onClick={() => setOpenPopUp(false)}
+                >
+                  X
+                </button>
+              </div>
+              <div className="content">
+                <p className="text-xl">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
+                  do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                  Lacus suspendisse faucibus interdum posuere lorem ipsum. Nibh
+                  ipsum consequat nisl vel pretium. Risus commodo viverra
+                  maecenas accumsan lacus. Mattis nunc sed blandit libero
+                  volutpat sed cras. Massa enim nec dui nunc mattis enim ut. Ac
+                  turpis egestas sed tempus urna et. Amet justo donec enim diam
+                  vulputate ut pharetra sit amet. Risus at ultrices mi tempus
+                  imperdiet nulla malesuada pellentesque. Eleifend donec pretium
+                  vulputate sapien nec sagittis. Id leo in vitae turpis massa
+                  sed elementum tempus egestas. Vel eros donec ac odio tempor
+                  orci dapibus.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {openSolution && (
+          <div>
+            <div className="overlay"></div>
+            <div className="popup-solution">
+              <div className="header">
+                <h2>Step-by-Step Solution:</h2>
+                <button
+                  className="close-btn"
+                  onClick={() => setOpenSolution(false)}
+                >
+                  X
+                </button>
+              </div>
+              <div className="results-container">
+                <MathJax className="mathjax-steps">
+                  <div dangerouslySetInnerHTML={{ __html: stepByStep }} />
+                </MathJax>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <h4 className="credits">
+          Made by Group 2 <br></br> for Calculus-based Physics Final Project.{" "}
+          <br></br> © porth, 2024.
+        </h4>
       </>
     </MathJaxContext>
   );
