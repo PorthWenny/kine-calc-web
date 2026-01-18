@@ -1,5 +1,5 @@
 ---
-# Kinematics Calculator Web App
+# Kinematics Calculator 🧮
 
 A responsive Kinematics calculator with step-by-step formulas designed for students and educators.
 
@@ -22,6 +22,6 @@ The project utilizes the following:
 2. Open `index.html` in your browser to start using the calculator.
 
 ## Contributing
-We welcome contributions to enhance the functionality or design of the app! Feel free to open issues or submit pull requests.
+I welcome contributions to enhance the functionality or design of the app! Feel free to open issues or submit pull requests.
 
 ---
